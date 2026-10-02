@@ -1,0 +1,8 @@
+node_modules/
+vendor/
+tests/shots/
+*.log
+.DS_Store
+Thumbs.db
+*:Zone.Identifier
+*Zone.Identifier

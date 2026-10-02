@@ -1,0 +1,12 @@
+# Normalise line endings; the Windows launcher must keep CRLF.
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.png binary
+*.jpg binary
+
+# Generated files: hide their diffs and keep them out of GitHub's language stats.
+index.html linguist-generated=true -diff
+src/glyphs.json linguist-generated=true -diff
+src/score_glyphs.json linguist-generated=true -diff
+src/piano_samples.json linguist-generated=true -diff
+package-lock.json linguist-generated=true

@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHORD//SCOPE</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230e1012'/%3E%3Cg stroke='%235fe3ff' stroke-width='3' opacity='.75'%3E%3Cpath d='M6 18H58M6 28H58M6 38H58M6 48H58'/%3E%3C/g%3E%3Cellipse cx='34' cy='33' rx='11' ry='7.5' fill='%23e5b95a' transform='rotate(-20 34 33)'/%3E%3C/svg%3E">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0e1012; --panel:#121619; --panel2:#171c20; --line:#20272d; --line2:#2d3740;
+  --text:#e4eaec; --muted:#a3b0b7; --dim:#6d7a83;
+  --cyan:#5fe3ff; --gold:#e5b95a; --cream:#efe6d2; --mint:#8dffc4; --red:#ff7a6e;
+  --serif:Georgia,'Times New Roman',serif;
+  --mono:ui-monospace,'Cascadia Mono','Cascadia Code',Consolas,'SF Mono',Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text)}
+body{font:14px/1.4 var(--mono);overflow:hidden;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:60;
+  background:repeating-linear-gradient(to bottom,rgba(255,255,255,.02) 0 1px,transparent 1px 3px)}
+.app{height:100vh;display:grid;grid-template-rows:auto auto minmax(150px,1fr) auto auto auto;gap:9px;padding:10px 14px 8px;position:relative}
+.transport{grid-row:2}.lcd,.score,.roll{grid-row:3}.showbar{grid-row:4}.kbd{grid-row:5}.status{grid-row:6}
+.lcd[hidden]{display:none}
+
+/* ── header ── */
+.top{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap}
+.top .grp{gap:8px}
+#modeSeg button{padding:8px 9px}
+#pianoBtn{padding:8px 10px}
+.brand{font:400 18px/1 var(--serif);letter-spacing:.07em;color:var(--cream);white-space:nowrap;margin-right:2px}
+.brand b{color:var(--cyan);font-weight:400;letter-spacing:.02em;margin:0 .06em}
+.grp{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap}
+.grp.right{margin-left:auto}
+.fld{display:inline-flex;align-items:center;gap:7px}
+.fld>span{font-size:12px;font-weight:600;letter-spacing:.1em;color:var(--muted)}
+select{appearance:none;-webkit-appearance:none;background:var(--panel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0h8L4 5z' fill='%23a3b0b7'/%3E%3C/svg%3E") no-repeat right 9px center;
+  color:var(--text);border:1px solid var(--line2);border-radius:0;font:14px/1.2 var(--mono);padding:7px 26px 7px 9px;max-width:210px;outline:none;cursor:pointer;text-overflow:ellipsis}
+#inSel{max-width:170px}#thruSel{max-width:132px}#chSel{max-width:84px}#typeSel{max-width:270px}#invSel{max-width:200px}
+select:hover{border-color:#52616b}
+select:focus-visible,button:focus-visible{outline:1px solid var(--cyan);outline-offset:1px}
+option,optgroup{background:#15191c;color:var(--text)}
+button{font:600 13px/1 var(--mono);letter-spacing:.07em;color:var(--text);background:var(--panel);border:1px solid var(--line2);border-radius:0;padding:8px 12px;cursor:pointer;white-space:nowrap}
+button:hover{border-color:#5a6a75;background:#161b1f}
+button:active{transform:translateY(1px)}
+.seg{display:inline-flex}
+.seg button+button{border-left:0}
+.seg button.on{background:var(--cream);color:#121416;border-color:var(--cream)}
+.tog i{display:inline-block;width:8px;height:8px;margin-left:9px;background:var(--dim);vertical-align:0}
+.tog.on{border-color:rgba(95,227,255,.7);color:var(--cyan)}
+.tog.on i{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.icon{padding:6px 10px;font-size:17px;font-weight:400;letter-spacing:0}
+.icon.on{border-color:var(--cyan);color:var(--cyan)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:64px;height:22px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:3px;background:#3a4650}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;margin-top:-5px;background:var(--cream);border:0}
+input[type=range]::-moz-range-track{height:3px;background:#3a4650}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;background:var(--cream);border:0;border-radius:0}
+
+/* ── LCD ── */
+.lcd{position:relative;display:flex;align-items:stretch;gap:10px;min-height:0;overflow:hidden;padding:8px 18px 8px 6px;container-type:size;
+  background:radial-gradient(120% 150% at 18% 0%,rgba(95,227,255,.075),transparent 62%),linear-gradient(#12171b,#0d1114);
+  border:1px solid var(--line2);box-shadow:inset 0 0 0 1px rgba(0,0,0,.65),inset 0 0 46px rgba(0,0,0,.6)}
+.lcd::before{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,rgba(95,227,255,.03) 0 1px,transparent 1px 3px)}
+#staff{height:100%;width:auto;flex:none;display:block;cursor:pointer}
+.readout{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:clamp(4px,2.2cqh,12px);padding:18px 0 4px 6px;cursor:pointer}
+.sym{font:400 clamp(40px,31cqh,160px)/1.02 var(--serif);color:#f3f7f8;text-shadow:0 0 22px rgba(95,227,255,.32);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .25s}
+.sym .q{font-size:.6em;margin-left:.04em}
+.sym .sl{font-size:.66em;margin:0 .03em 0 .06em;color:#9fb0b8}
+.sym .b{font-size:.66em}
+.sym .dash{margin:0 .12em;color:#9fb0b8}
+.sym .ph{color:#3a464f;text-shadow:none}
+.sym .unsure{font-size:.5em;color:var(--gold);margin-left:.2em;vertical-align:.7em}
+.sym.show{color:var(--gold);text-shadow:0 0 22px rgba(229,185,90,.32)}
+.sym.ghost,.long.ghost,.tones.ghost{opacity:.36;text-shadow:none}
+svg.acc{fill:currentColor;overflow:visible}
+.sym svg.acc{margin:0 .015em}
+.long{font:italic clamp(15px,6cqh,26px)/1.3 var(--serif);color:#c3cfd4;min-height:1.3em;transition:opacity .25s}
+.long .inv{font-style:normal;font-family:var(--mono);font-size:clamp(12px,3.4cqh,15px);letter-spacing:.1em;color:var(--cyan);margin-left:10px;vertical-align:1px;text-transform:uppercase}
+.long.showc .inv{color:var(--gold)}
+.tones{display:flex;gap:4px clamp(12px,4cqh,22px);flex-wrap:wrap;min-height:34px;transition:opacity .25s}
+.tones .t{display:flex;flex-direction:column;align-items:center;min-width:18px}
+.tones .t b{font:600 clamp(15px,5.6cqh,23px)/1.25 var(--mono);color:var(--text)}
+.tones .t i{font-style:normal;font-size:clamp(12px,3.5cqh,14px);color:var(--muted)}
+.tones .t.bass b{color:var(--cyan)}
+.tones svg.acc{fill:currentColor}
+.sub{display:flex;gap:16px;flex-wrap:wrap;font-size:clamp(12.5px,3.6cqh,15px);color:var(--muted);min-height:17px}
+.sub>span:empty{display:none}
+.sub .alts span{color:#c9d4d9}
+.sub .match{letter-spacing:.08em}
+.sub .match.ok{color:var(--mint)}
+.sub .match.no{color:var(--gold)}
+.tags{position:absolute;top:8px;right:12px;display:flex;gap:6px;font-size:11.5px;font-weight:600;letter-spacing:.12em;z-index:2}
+.tag{padding:4px 7px 3px;border:1px solid var(--line2);color:var(--dim)}
+.tag.lit{color:var(--cyan);border-color:rgba(95,227,255,.45)}
+.tag.gold{color:var(--gold);border-color:rgba(229,185,90,.5)}
+#staff .sl{stroke:rgba(150,215,240,.34);stroke-width:.11}
+#staff .sys{stroke:rgba(150,215,240,.42);stroke-width:.16}
+#staff .gl{fill:rgba(170,226,248,.6)}
+#staff .notes{color:var(--cyan);fill:currentColor}
+#staff .notes.show{color:var(--gold)}
+#staff .notes.ghost{opacity:.36}
+#staff .lg{stroke:currentColor;stroke-width:.16;opacity:.85}
+#staff .ott{font:italic .95px var(--serif);fill:currentColor}
+
+/* ── SHOW bar ── */
+.showbar{display:flex;flex-direction:column;gap:9px;padding:10px 12px;border:1px solid rgba(229,185,90,.32);
+  background:linear-gradient(rgba(229,185,90,.06),rgba(229,185,90,.015))}
+.showbar[hidden]{display:none}
+.showbar .row{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap}
+.showbar .fld>span{color:#cfae68}
+.showbar .step{padding:8px 9px;font-size:11px}
+.mods{gap:6px!important}
+.mods .lbl{font-size:12px;font-weight:600;letter-spacing:.1em;color:#cfae68;margin-right:4px}
+.mods button{padding:7px 10px;font:600 14px/1 var(--mono);letter-spacing:.02em}
+.mods button.on{background:var(--gold);color:#16130d;border-color:var(--gold)}
+.mods button svg.acc,#spellSeg svg.acc{font-size:1.35em;margin-right:.04em}
+button.primary{background:var(--cream);color:#121416;border-color:var(--cream)}
+button.primary:hover{background:#fff}
+.showbar .spacer{flex:1}
+
+/* ── SCORE: parchment ── */
+.score{display:flex;flex-direction:column;gap:8px;min-height:0;min-width:0}
+.score[hidden]{display:none}
+.score-bar{display:flex;align-items:center;gap:7px 8px;flex-wrap:wrap}
+.score-bar button{padding:8px 9px;font-size:12.5px}
+.score-bar .seg button{padding:8px 9px}
+input[type=number]{width:58px;background:var(--panel);color:var(--text);border:1px solid var(--line2);border-radius:0;font:14px/1.2 var(--mono);padding:6px 4px 6px 8px;outline:none}
+input[type=number]:focus{border-color:var(--cyan)}
+.score-bar select{padding:7px 24px 7px 9px}
+.score-bar .spacer{flex:1}
+.beats{display:inline-flex;gap:4px;margin:0 4px 0 2px}
+.beats i{width:10px;height:10px;border:1px solid #3a4650;display:block}
+.beats i.on{background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.beats i.on.one{background:var(--gold);border-color:var(--gold);box-shadow:0 0 8px var(--gold)}
+.scoreChord{font:400 24px/1 var(--serif);color:var(--cream);min-width:0;text-align:right;white-space:nowrap}
+.scoreChord svg.acc{fill:currentColor}
+.pager{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);letter-spacing:.06em}
+.pager[hidden]{display:none}
+.pager button{padding:7px 8px}
+@keyframes recPulse{50%{opacity:.35}}
+.stage{position:relative;flex:1;min-height:0;container-type:size;display:grid;place-items:center;perspective:2400px;overflow:hidden}
+.sheet{grid-area:1/1;position:relative;aspect-ratio:var(--ar,1.43);width:min(calc(100cqw - 18px),calc((100cqh - 18px) * var(--ar,1.43)));
+  background-color:#eee0bd;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .33 0 0 0 0 .22 0 0 0 0 .1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.38'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006' numOctaves='4' seed='9' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .38 0 0 0 0 .16 0 0 0 .9 -.32'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.5'/%3E%3C/svg%3E"),
+    radial-gradient(120% 90% at 30% 18%,rgba(255,250,232,.55),rgba(255,250,232,0) 55%),
+    radial-gradient(ellipse at 50% 46%,rgba(120,76,28,0) 58%,rgba(120,76,28,.34) 100%);
+  box-shadow:0 18px 40px rgba(0,0,0,.62),0 2px 6px rgba(0,0,0,.5),inset 0 0 60px rgba(120,78,30,.3),inset 0 0 5px rgba(90,55,20,.5);
+  backface-visibility:hidden}
+.sheet.scroll{box-shadow:0 14px 32px rgba(0,0,0,.6),inset 0 0 40px rgba(120,78,30,.32),inset 0 0 4px rgba(90,55,20,.5)}
+.sheet svg{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:hidden}
+.sheet use,.sheet path{fill:#291b10}
+.sheet .frame use{fill:#35251a}
+.sheet .sl{stroke:rgba(82,56,30,.55);stroke-width:.11}
+.sheet .bl,.sheet .lg{stroke:#2e2015;stroke-width:.16}
+.sheet .stem{stroke:#291b10;stroke-width:.13;stroke-linecap:round}
+.sheet .inkc use{fill:#6e2a12}
+.sheet .hint use{fill:rgba(70,46,24,.3)}
+.sheet .cursor{stroke:rgba(156,36,22,.6);stroke-width:.16}
+.ink{animation:inkIn .45s cubic-bezier(.2,.75,.25,1) both;transform-box:view-box}
+.inkf{animation:inkFade .35s ease-out both}
+.inkc{animation:inkFade .6s ease-out both}
+@keyframes inkIn{0%{opacity:0;transform:scale(1.7)}50%{opacity:1}100%{opacity:1;transform:scale(1)}}
+.sheet .fade{pointer-events:none}
+@keyframes inkFade{from{opacity:0}to{opacity:1}}
+.sheet.turning{z-index:3;transform-origin:left center;animation:turnPage .9s cubic-bezier(.45,.05,.35,1) forwards;pointer-events:none}
+.sheet.turning::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(40,20,5,0),rgba(40,20,5,.45));opacity:0;animation:turnShade .9s ease-in forwards}
+@keyframes turnPage{0%{transform:rotateY(0)}100%{transform:rotateY(-100deg)}}
+@keyframes turnShade{to{opacity:1}}
+.sheet.fading{z-index:3;animation:fadeOut .35s ease forwards;pointer-events:none}
+@keyframes fadeOut{to{opacity:0}}
+
+/* ── transport: record / play / export / import + metronome ── */
+.transport{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;padding:6px 8px;border:1px solid var(--line);background:linear-gradient(#111519,#0f1215)}
+.transport .grp{gap:8px}
+.recb i{display:inline-block;width:9px;height:9px;border-radius:50%;background:#8a4038;margin-right:8px;vertical-align:0}
+.recb.on{border-color:#ff6b5a;color:#ff9a8a}.recb.on i{background:#ff4b3a;box-shadow:0 0 8px #ff4b3a;animation:recPulse 1s ease-in-out infinite}
+.recb.count{border-color:var(--gold);color:var(--gold)}.recb.count i{background:var(--gold);animation:recPulse .5s ease-in-out infinite}
+.icon2{min-width:40px;padding:8px 10px;font-size:13px;letter-spacing:0}
+#playBtn.on{border-color:var(--gold);color:var(--gold);background:rgba(229,185,90,.08)}
+.clock{font:600 15px/1 var(--mono);color:var(--muted);min-width:70px;letter-spacing:.03em;font-variant-numeric:tabular-nums}
+.clock.rec{color:#ff9a8a}.clock.play{color:var(--gold)}.clock.count{color:var(--gold)}
+.trackname{font:italic 15px/1.2 var(--serif);color:var(--cream);max-width:clamp(0px,calc(100vw - 1010px),260px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.metro .fld input{width:58px}
+#metroBtn.on{border-color:var(--gold);color:var(--gold)}#metroBtn.on i{background:var(--gold);box-shadow:0 0 8px var(--gold)}
+
+/* ── ROLL: player-piano paper roll ── */
+.roll{display:flex;flex-direction:column;gap:8px;min-height:0;min-width:0}
+.roll[hidden]{display:none}
+.roll-bar{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap}
+.roll-bar input[type=range]{flex:1;min-width:140px;width:auto}
+.rtime{font:600 13px/1 var(--mono);color:var(--muted);min-width:46px;text-align:center;font-variant-numeric:tabular-nums}
+.roll-stage{position:relative;flex:1;min-height:0;overflow:hidden;background-color:#ece0c1;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .33 0 0 0 0 .22 0 0 0 0 .1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.38'/%3E%3C/svg%3E"),
+    linear-gradient(90deg,rgba(120,76,28,.22),rgba(120,76,28,0) 6%,rgba(120,76,28,0) 94%,rgba(120,76,28,.22));
+  box-shadow:inset 0 0 40px rgba(120,78,30,.3),0 10px 28px rgba(0,0,0,.5)}
+.roll-canvas{position:absolute;inset:0;display:block}
+
+/* ── export menu, notices, file drop ── */
+.popover{position:absolute;z-index:55;width:min(440px,calc(100vw - 28px));background:#111518;border:1px solid var(--line2);box-shadow:0 22px 60px rgba(0,0,0,.65);padding:12px;display:grid;gap:7px}
+.popover[hidden]{display:none}
+.popover h3{font:400 15px/1 var(--serif);letter-spacing:.14em;color:var(--cream);padding:2px 2px 6px}
+.popover h3 span{font:12.5px var(--mono);letter-spacing:.02em;color:var(--muted);margin-left:10px}
+.popover button{display:grid;gap:5px;text-align:left;padding:10px 12px;white-space:normal}
+.popover button b{font:600 14px/1.2 var(--mono);letter-spacing:.04em;color:var(--text)}
+.popover button i{font:400 12.5px/1.35 var(--mono);letter-spacing:0;color:var(--muted);font-style:normal}
+.popover button:hover{border-color:var(--cyan)}
+.popover button:disabled{opacity:.4;cursor:default;border-color:var(--line2)}
+.toast{position:absolute;right:14px;bottom:36px;z-index:70;max-width:min(560px,calc(100vw - 28px));padding:11px 14px;background:#141a1e;border:1px solid var(--line2);border-left:3px solid var(--cyan);font-size:13.5px;line-height:1.45;color:var(--text);box-shadow:0 12px 40px rgba(0,0,0,.6)}
+.toast[hidden]{display:none}
+.toast.err{border-left-color:var(--red)}
+.drop{position:fixed;inset:0;z-index:80;background:rgba(10,12,14,.84);display:grid;place-items:center;pointer-events:none}
+.drop[hidden]{display:none}
+.drop div{border:2px dashed var(--gold);padding:42px 64px;font:italic 26px var(--serif);color:var(--cream)}
+
+/* ── keyboard ── */
+.kbd{position:relative;min-width:0}
+.kbd-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:12.5px;letter-spacing:.06em;color:var(--muted)}
+.kbd-head button{padding:7px 10px;font-size:12px}
+.kbd-head .spacer{flex:1}
+.edge{font-size:15px;color:var(--dim);letter-spacing:0}
+.edge.lit{color:var(--cyan)}
+.keys{position:relative;width:100%;touch-action:none;cursor:pointer}
+.kbd.collapsed .keys{display:none}
+.kbd.collapsed .kbd-head{margin-bottom:0}
+.keys canvas.kb3d{display:block}
+.kb3d-labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.kb3d-labels span{position:absolute;transform:translate(-50%,-50%);font:700 12px/1 var(--mono);white-space:nowrap}
+.kb3d-labels .kl-c{font-size:11px;font-weight:600;color:#78848c}
+.kb3d-labels .kl-c.mid{color:#283035}
+.kb3d-labels .kl-c.lit{color:#24343b}
+.kb3d-labels .kl-n{font-size:13px;color:#081014;text-shadow:0 0 3px rgba(255,255,255,.35)}
+.kb3d-labels .kl-n.blk{font-size:11.5px;text-shadow:none}
+.keys svg.kflat{display:block;width:100%;height:auto;max-height:24vh}
+.kflat .wk{fill:url(#wkg);stroke:#090b0c;stroke-width:1}
+.kflat .bk{fill:url(#bkg);stroke:#030404;stroke-width:1}
+.kflat .wk.sus{fill:#8ccfdf}.kflat .bk.sus{fill:#23798c}
+.kflat .wk.held{fill:var(--cyan)}.kflat .bk.held{fill:#2fc3e4}
+.kflat .wk.tgt{fill:var(--gold)}.kflat .bk.tgt{fill:#c99a3c}
+.kflat .wk.tgt.held,.kflat .wk.tgt.sus{fill:var(--mint)}.kflat .bk.tgt.held,.kflat .bk.tgt.sus{fill:#4fd690}
+.kflat text{pointer-events:none;font-family:var(--mono);text-anchor:middle}
+.kflat .cl{fill:#6f7a81;font-size:10px;font-weight:600}
+.kflat .cl.mid{fill:#2a3238;font-weight:700}
+.kflat .kl{fill:#0b0e10;font-size:11.5px;font-weight:700}
+.kflat .kl.bkl{font-size:10px}
+.kflat .felt{fill:#3a1418}
+
+/* ── status ── */
+.status{display:flex;gap:20px;font-size:12.5px;color:var(--muted);letter-spacing:.03em;white-space:nowrap;overflow:hidden;min-height:17px}
+.status .spacer{flex:1}
+.dot{display:inline-block;width:8px;height:8px;background:var(--dim);margin-right:8px;vertical-align:0}
+.dot.ok{background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
+.dot.warn{background:var(--gold)}
+.dot.err{background:var(--red)}
+.status .hot{color:var(--cyan)}
+
+/* ── settings ── */
+.settings{position:absolute;top:56px;right:14px;z-index:50;width:min(430px,calc(100vw - 28px));max-height:calc(100vh - 70px);overflow:auto;
+  background:#111518;border:1px solid var(--line2);box-shadow:0 22px 60px rgba(0,0,0,.65);padding:16px 16px 14px;display:grid;gap:12px}
+.settings[hidden]{display:none}
+.settings h3{font:400 16px/1 var(--serif);letter-spacing:.16em;color:var(--cream)}
+.settings .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.settings .row>span{font-size:13.5px;color:#c3cfd4;letter-spacing:.02em}
+.settings .seg button{padding:7px 10px}
+.settings .help{font-size:13px;line-height:1.55;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+.settings .help b{color:var(--text);font-weight:500}
+.settings .help p+p{margin-top:7px}
+.settings .help .about{font-size:12px;color:var(--dim);padding-top:8px;border-top:1px solid var(--line)}
+.settings .help a{color:var(--cyan);text-decoration:none}
+.settings .help a:hover{text-decoration:underline}
+.kbdhint{color:var(--text)}
+@media (max-width:1079px){.trackname{display:none}}
+@media (max-width:760px){.brand{width:100%}.grp.right{margin-left:0}.lcd{padding-right:10px}.long{font-size:15px}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <div class="brand">CHORD<b>//</b>SCOPE</div>
+    <div class="grp">
+      <label class="fld" title="MIDI input device"><span>IN</span><select id="inSel"></select></label>
+      <label class="fld" title="MIDI channel filter"><span>CH</span><select id="chSel"></select></label>
+      <label class="fld" title="Forward everything from the input to this output (e.g. a loopMIDI port that FL Studio listens to)"><span>THRU</span><select id="thruSel"></select></label>
+    </div>
+    <div class="grp right">
+      <div class="seg" id="modeSeg"><button data-mode="live" title="Name the chords you play">LIVE</button><button data-mode="show" title="Build a chord and see it on the keys">SHOW</button><button data-mode="score" title="Write what you play as sheet music">SCORE</button><button data-mode="roll" title="Player piano: play an imported file or your recording">ROLL</button></div>
+      <button class="tog" id="pianoBtn" title="Built-in piano sound">PIANO<i></i></button>
+      <input type="range" id="vol" min="0" max="100" title="Piano volume">
+      <button class="icon" id="setBtn" title="Settings &amp; help">⚙</button>
+    </div>
+  </header>
+
+  <section class="transport" id="transport">
+    <div class="grp">
+      <button class="recb" id="recBtn" title="Record a session: everything you play is written to the score. With the metronome running you get a one-bar count-in."><i></i><span>REC</span></button>
+      <button class="icon2" id="playBtn" title="Play the imported file or your last recording (Enter)">▶</button>
+      <button class="icon2" id="haltBtn" title="Stop recording / playback">■</button>
+      <span class="clock" id="clock">0:00.0</span>
+      <button id="exportBtn" title="Save the score as MusicXML, MIDI or PDF">EXPORT</button>
+      <button id="importBtn" title="Open a MIDI or MusicXML file to play">IMPORT</button>
+      <span class="trackname" id="trackName"></span>
+    </div>
+    <div class="grp right metro">
+      <span class="beats" id="beats" title="Metronome beat"></span>
+      <label class="fld" title="Tempo (quarter notes per minute)"><span>♩=</span><input type="number" id="bpmIn" min="30" max="240" step="1"></label>
+      <button id="tapBtn" title="Tap the beat to set the tempo (and line the metronome up with your taps)">TAP</button>
+      <select id="meterSel" title="Time signature"><option value="4">4/4</option><option value="3">3/4</option><option value="2">2/4</option></select>
+      <button class="tog" id="clickBtn" title="Metronome sound on/off (off: the lights still flash)">CLICK<i></i></button>
+      <button class="tog" id="metroBtn" title="Start / stop the metronome">METRO<i></i></button>
+    </div>
+  </section>
+
+  <section class="lcd" id="lcd">
+    <svg id="staff" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Grand staff"></svg>
+    <div class="readout" id="readout" title="Click to hear">
+      <div class="sym" id="sym"></div>
+      <div class="long" id="long"></div>
+      <div class="tones" id="tones"></div>
+      <div class="sub"><span class="alts" id="alts"></span><span class="match" id="match"></span></div>
+    </div>
+    <div class="tags"><span class="tag" id="tagMode">LIVE</span><span class="tag" id="tagHold">HELD</span><span class="tag" id="tagPedal">PEDAL</span></div>
+  </section>
+
+  <section class="score" id="score" hidden>
+    <div class="score-bar">
+      <div class="seg" id="scoreViewSeg"><button data-v="page" title="3 rows of 4 bars; turns the page when full">PAGE</button><button data-v="scroll" title="One large row that scrolls as you play">SCROLL</button></div>
+      <div class="seg" id="gridSeg" title="Snap notes to this grid"><button data-v="2">1/8</button><button data-v="1">1/16</button></div>
+      <button class="tog" id="symBtn" title="Write chord symbols above the staff">CHORDS<i></i></button>
+      <span class="spacer"></span>
+      <span class="scoreChord" id="scoreChord"></span>
+      <span class="pager" id="pager"><button id="pgPrev" title="Previous page">◀</button><span id="pgTxt">1 / 1</span><button id="pgNext" title="Next page">▶</button></span>
+      <button id="scoreClear" title="Start a fresh score">CLEAR</button>
+    </div>
+    <div class="stage" id="stage"></div>
+  </section>
+
+  <section class="roll" id="roll" hidden>
+    <div class="roll-bar">
+      <div class="seg" id="srcSeg" hidden title="Which track ▶ plays"><button data-v="file">FILE</button><button data-v="take">MY TAKE</button></div>
+      <span class="rtime" id="rollTime">0:00</span>
+      <input type="range" id="seek" min="0" max="1000" value="0" title="Position">
+      <span class="rtime" id="rollDur">0:00</span>
+      <div class="seg" id="speedSeg" title="Playback speed"><button data-v="0.5">50%</button><button data-v="0.75">75%</button><button data-v="1">100%</button><button data-v="1.25">125%</button></div>
+    </div>
+    <div class="roll-stage" id="rollStage"></div>
+  </section>
+
+  <section class="showbar" id="showbar" hidden>
+    <div class="row">
+      <label class="fld"><span>ROOT</span>
+        <button class="step" id="rootDn" title="Root down a semitone">◀</button><select id="rootSel"></select><button class="step" id="rootUp" title="Root up a semitone">▶</button>
+      </label>
+      <label class="fld"><span>CHORD</span><select id="typeSel"></select></label>
+      <label class="fld"><span>INVERSION</span><select id="invSel"></select></label>
+      <label class="fld"><span>BASS</span><select id="bassSel"></select></label>
+    </div>
+    <div class="row mods" id="mods"><span class="lbl">MODIFY</span><span class="spacer" id="modsEnd"></span><button class="primary" id="hearBtn" title="Play the chord">▶ HEAR</button></div>
+  </section>
+
+  <section class="kbd" id="kbd">
+    <div class="kbd-head">
+      <button id="keysBtn" title="Show or hide the on-screen keyboard">KEYS ▾</button>
+      <span class="edge" id="edgeL">◀</span>
+      <button id="latchBtn" class="tog" title="Click keys to toggle them on/off">LATCH<i></i></button>
+      <button id="clearBtn" title="Release every note (Esc)">CLEAR</button>
+      <span class="spacer"></span>
+      <span id="qwertyHint"></span>
+      <span class="edge" id="edgeR">▶</span>
+    </div>
+    <div class="keys" id="keys" role="group" aria-label="Keyboard"></div>
+  </section>
+
+  <footer class="status" id="status"></footer>
+
+  <div class="popover" id="exportPop" hidden>
+    <h3>EXPORT SCORE<span id="exportInfo"></span></h3>
+    <button data-x="musicxml"><b>MusicXML</b><i>.musicxml · sheet music for MuseScore, Sibelius, Finale, Dorico</i></button>
+    <button data-x="midi"><b>MIDI · as played</b><i>.mid · your timing and dynamics, for FL Studio or any DAW</i></button>
+    <button data-x="midiq"><b>MIDI · quantized</b><i>.mid · snapped to the score's grid</i></button>
+    <button data-x="pdf"><b>PDF / print</b><i>the manuscript pages, to print or save as PDF</i></button>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+  <input type="file" id="fileIn" accept=".mid,.midi,.kar,.rmi,.musicxml,.xml,.mxl" hidden>
+
+  <div class="settings" id="settings" hidden>
+    <h3>SETTINGS</h3>
+    <div class="row"><span>Note spelling</span><div class="seg" id="spellSeg"><button data-v="auto">AUTO</button><button data-v="sharp">♯</button><button data-v="flat">♭</button></div></div>
+    <div class="row"><span>Keyboard</span><div class="seg" id="rangeSeg"><button data-v="88">88</button><button data-v="76">76</button><button data-v="61">61</button><button data-v="49">49</button></div></div>
+    <div class="row"><span>Sustain pedal holds the chord</span><button class="tog" id="pedalHoldBtn">ON<i></i></button></div>
+    <div class="row"><span>Keep last chord (dimmed)</span><button class="tog" id="holdLastBtn">ON<i></i></button></div>
+    <div class="row"><span>Note names on keys</span><button class="tog" id="labelsBtn">ON<i></i></button></div>
+    <div class="row"><span>Computer-keyboard playing</span><button class="tog" id="qwertyBtn">ON<i></i></button></div>
+    <div class="row"><span>Piano reverb</span><input type="range" id="verb" min="0" max="100"></div>
+    <div class="row"><span>Score: new phrase after a silent bar</span><button class="tog" id="idleBtn">ON<i></i></button></div>
+    <div class="help">
+      <p><b>LIVE</b> names whatever you hold (up to 10 notes). <b>SHOW</b> lets you pick a chord, modifiers, inversion and bass note and lights it on the keys in its simplest voicing, rooted in the middle-C octave; play it and the keys turn mint when you match.</p>
+      <p><b>THRU</b> forwards everything from IN to an output. To use the keyboard in FL Studio at the same time, create a loopMIDI port, pick it here as THRU, and in FL enable that port instead of the keyboard.</p>
+      <p><b>SCORE</b> writes what you play onto manuscript. Notes snap to the grid at the metronome's tempo. With the metronome running, bar lines follow its clicks; without it, your first note is beat 1 and a silent bar closes the phrase. PAGE fills 3 rows of 4 bars and turns the page; SCROLL keeps one big row moving left as you play.</p>
+      <p><b>● REC</b> records a session in any mode (one bar of count-in when the metronome runs), <b>■</b> stops, and <b>EXPORT</b> saves it as MusicXML, MIDI or PDF. <b>IMPORT</b> opens a MIDI or MusicXML file; <b>▶</b> plays it on the keys like a player piano. <b>ROLL</b> shows it as a paper roll.</p>
+      <p><b>Computer keys:</b> <span class="kbdhint">Z S X D C V…</span> and <span class="kbdhint">Q 2 W 3 E R…</span> play two octaves · <span class="kbdhint">← →</span> octave · <span class="kbdhint">Space</span> sustain · <span class="kbdhint">Esc</span> release all · <span class="kbdhint">Enter</span> play / pause. Click the chord name or staff to hear it.</p>
+      <p class="about">CHORD//SCOPE · MIT · <a href="https://github.com/ScottieFox/chordscope" target="_blank" rel="noopener">github.com/ScottieFox/chordscope</a><br>Piano: Salamander Grand Piano V3 by Alexander Holm (CC BY 3.0) · notation: Bravura &amp; Petaluma (SIL OFL 1.1) · 3D keys: three.js</p>
+    </div>
+  </div>
+</div>
+<div class="drop" id="drop" hidden><div>Drop a MIDI or MusicXML file to play it</div></div>
+
+<script id="glyphs">window.CS_GLYPHS = /*GLYPHS*/;</script>
+<script id="chord-engine">/*ENGINE*/</script>
+<script id="score-glyphs">window.CS_SCORE_GLYPHS = /*SCOREGLYPHS*/;</script>
+<script id="score-model">/*SCOREMODEL*/</script>
+<script id="score-view">/*SCOREVIEW*/</script>
+<script id="keyboard-3d">/*KEYBOARD3D*/</script>
+<script id="midi-file">/*MIDIFILE*/</script>
+<script id="musicxml">/*MUSICXML*/</script>
+<script id="player">/*PLAYER*/</script>
+<script id="roll-view">/*ROLLVIEW*/</script>
+<script type="application/json" id="piano-samples">/*PIANOSAMPLES*/</script>
+<script id="app-main">/*APP*/</script>
+</body>
+</html>

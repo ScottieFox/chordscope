@@ -1,0 +1,38 @@
+{
+  "name": "chordscope",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CHORD//SCOPE: live chord names, grand staff, chord builder, real-time score transcription with MusicXML/MIDI/PDF export, a MIDI and MusicXML player piano, metronome and sampled grand piano, in a single HTML file.",
+  "license": "MIT",
+  "author": "ScottieFox (https://github.com/ScottieFox)",
+  "homepage": "https://scottiefox.github.io/chordscope/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ScottieFox/chordscope.git"
+  },
+  "bugs": "https://github.com/ScottieFox/chordscope/issues",
+  "keywords": [
+    "midi",
+    "web-midi",
+    "chords",
+    "chord-recognition",
+    "music-theory",
+    "piano",
+    "sheet-music",
+    "musicxml",
+    "transcription",
+    "metronome",
+    "player-piano",
+    "threejs"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node tests/chordscope.test.mjs index.html",
+    "test:browser": "node tests/browser.test.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "three": "0.184.0"
+  }
+}
